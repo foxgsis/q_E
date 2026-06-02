@@ -1,4 +1,28 @@
-name: Get Latest QEMU 11.0.0 from Termux Repository
+name: Get Latest QEMU from Termux Mirror
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download QEMU binary from official Termux mirror
+        run: |
+          # Это ссылка на рабочее зеркало от Termux [citation:7]
+          wget https://packages.termux.org/apt/termux-main/pool/main/q/qemu-system-aarch64/qemu-system-aarch64_11.0.0_aarch64.deb
+
+      - name: Extract binary from package
+        run: |
+          ar x qemu-system-aarch64_11.0.0_aarch64.deb data.tar.xz
+          tar -xf data.tar.xz
+          cp data/data/com.termux/files/usr/bin/qemu-system-aarch64 .
+          chmod +x qemu-system-aarch64
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-system-aarch64
+          path: qemu-system-aarch64name: Get Latest QEMU 11.0.0 from Termux Repository
 
 on: workflow_dispatch
 
