@@ -26,13 +26,12 @@ jobs:
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
 
-      - name: Configure QEMU with correct pkg-config paths
+      - name: Configure QEMU
         run: |
           cd qemu
           mkdir build && cd build
-          # Ключевая строка: добавляем путь к ARM64 .pc файлам прямо в PKG_CONFIG_PATH
-          PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig \
-          PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig \
+          export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
+          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
           ../configure \
             --target-list=aarch64-softmmu \
             --cross-prefix=aarch64-linux-gnu- \
