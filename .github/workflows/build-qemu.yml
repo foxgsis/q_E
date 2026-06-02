@@ -1,4 +1,4 @@
-name: Build QEMU 11.0.0 for ARM64 (dynamic)
+name: Build QEMU 11.0.0 for Android ARM64 (with TLS fix)
 
 on:
   workflow_dispatch:
@@ -13,21 +13,34 @@ jobs:
           sudo apt-get install -y \
             git build-essential ninja-build pkg-config python3-pip \
             libglib2.0-dev libpixman-1-dev libepoxy-dev libsdl2-dev \
-            libvirglrenderer-dev libxkbcommon-dev meson
+            libvirglrenderer-dev meson
 
       - name: Checkout QEMU
         run: |
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
+
+      - name: Configure QEMU with TLS alignment fix
+        run: |
+          cd qemu
           mkdir build && cd build
+          # Ключевой флаг -Wl,-z,max-page-size=64 для правильного выравнивания TLS
+          LDFLAGS="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64" \
           ../configure \
             --target-list=aarch64-softmmu \
-            --enable-sdl --enable-opengl --enable-virglrenderer --enable-vnc \
+            --enable-sdl \
+            --enable-opengl \
+            --enable-virglrenderer \
+            --enable-vnc \
             --disable-werror
+
+      - name: Build QEMU
+        run: |
+          cd qemu/build
           make -j$(nproc)
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: qemu-system-aarch64
+          name: qemu-system-aarch64-android
           path: qemu/build/qemu-system-aarch64
