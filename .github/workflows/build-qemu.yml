@@ -24,7 +24,7 @@ jobs:
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
 
-      - name: Configure QEMU with TLS alignment
+      - name: Configure QEMU with TLS alignment (disable Xen)
         run: |
           cd qemu
           mkdir build && cd build
@@ -33,6 +33,7 @@ jobs:
           ../configure \
             --target-list=aarch64-softmmu \
             --cross-prefix=aarch64-linux-gnu- \
+            --disable-xen \
             --extra-ldflags="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64" \
             --disable-werror
 
