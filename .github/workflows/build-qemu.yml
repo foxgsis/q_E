@@ -26,7 +26,7 @@ jobs:
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
 
-      - name: Configure QEMU
+      - name: Configure QEMU (with glib disabled for compatibility)
         run: |
           cd qemu
           mkdir build && cd build
@@ -39,7 +39,8 @@ jobs:
             --enable-opengl \
             --enable-virglrenderer \
             --enable-vnc \
-            --disable-werror
+            --disable-werror \
+            --disable-glib
 
       - name: Build QEMU
         run: |
