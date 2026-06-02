@@ -1,4 +1,4 @@
-name: Get the Latest QEMU for Termux
+name: Get Latest QEMU 11.0.0 from Termux Repository
 
 on: workflow_dispatch
 
@@ -6,22 +6,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Download the latest QEMU package for Termux
+      - name: Download QEMU package from Termux repository
         run: |
-          # Ссылка ведёт на самый свежий стабильный пакет QEMU для aarch64 из официального репозитория Termux
+          # Скачиваем актуальный пакет QEMU для aarch64
           wget https://packages.termux.org/apt/termux-main/pool/main/q/qemu-system-aarch64/qemu-system-aarch64_11.0.0_aarch64.deb
 
-      - name: Extract the main binary from the DEB package
+      - name: Extract binary from package
         run: |
           ar x qemu-system-aarch64_11.0.0_aarch64.deb data.tar.xz
           tar -xf data.tar.xz
           cp data/data/com.termux/files/usr/bin/qemu-system-aarch64 .
+          chmod +x qemu-system-aarch64
 
-      - name: Prepare binary for upload
-        run: chmod +x qemu-system-aarch64
-
-      - name: Upload the ready-to-use QEMU binary
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: qemu-system-aarch64-latest
+          name: qemu-system-aarch64
           path: qemu-system-aarch64
