@@ -1,21 +1,27 @@
-name: Build QEMU 11.0.0
+name: Get the Latest QEMU for Termux
 
 on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y git build-essential libglib2.0-dev libpixman-1-dev
-          git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
-          cd qemu
-          mkdir build && cd build
-          ../configure --target-list=aarch64-softmmu \
-            --extra-ldflags="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64"
-          make -j$(nproc)
-      - uses: actions/upload-artifact@v4
+      - name: Download the latest QEMU package for Termux
+        run: |
+          # Ссылка ведёт на самый свежий стабильный пакет QEMU для aarch64 из официального репозитория Termux
+          wget https://packages.termux.org/apt/termux-main/pool/main/q/qemu-system-aarch64/qemu-system-aarch64_11.0.0_aarch64.deb
+
+      - name: Extract the main binary from the DEB package
+        run: |
+          ar x qemu-system-aarch64_11.0.0_aarch64.deb data.tar.xz
+          tar -xf data.tar.xz
+          cp data/data/com.termux/files/usr/bin/qemu-system-aarch64 .
+
+      - name: Prepare binary for upload
+        run: chmod +x qemu-system-aarch64
+
+      - name: Upload the ready-to-use QEMU binary
+        uses: actions/upload-artifact@v4
         with:
-          name: qemu
-          path: qemu/build/qemu-system-aarch64
+          name: qemu-system-aarch64-latest
+          path: qemu-system-aarch64
