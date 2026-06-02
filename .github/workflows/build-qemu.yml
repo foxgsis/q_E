@@ -1,4 +1,4 @@
-name: Build QEMU 11.0.0 for Android ARM64 (with TLS fix)
+name: Build QEMU 11.0.0 for Android ARM64 (dynamic)
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
             libvirglrenderer-dev \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: Install modern meson (>=1.5.0)
+      - name: Install modern meson
         run: |
           pip3 install --user meson
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -26,10 +26,13 @@ jobs:
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
 
-      - name: Configure QEMU with cross-compilation and TLS fix
+      - name: Configure QEMU with correct pkg-config paths
         run: |
           cd qemu
           mkdir build && cd build
+          # Ключевые переменные для pkg-config
+          export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
+          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
           ../configure \
             --target-list=aarch64-softmmu \
             --cross-prefix=aarch64-linux-gnu- \
@@ -37,9 +40,7 @@ jobs:
             --enable-opengl \
             --enable-virglrenderer \
             --enable-vnc \
-            --disable-werror \
-            --extra-cflags="-mno-outline-atomics" \
-            --extra-ldflags="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64"
+            --disable-werror
 
       - name: Build QEMU
         run: |
@@ -49,5 +50,5 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: qemu-system-aarch64-android
+          name: qemu-system-aarch64-dynamic
           path: qemu/build/qemu-system-aarch64
