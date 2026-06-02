@@ -1,25 +1,28 @@
-name: Get Latest QEMU from Termux Mirror
+name: Build QEMU 11.0.0 for Android 16 (16k pages)
 
 on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
-      - name: Download QEMU binary from official Termux mirror
-        run: |
-          # Это ссылка на рабочее зеркало от Termux [citation:7]
-          wget https://packages.termux.org/apt/termux-main/pool/main/q/qemu-system-aarch64/qemu-system-aarch64_11.0.0_aarch64.deb
-
-      - name: Extract binary from package
-        run: |
-          ar x qemu-system-aarch64_11.0.0_aarch64.deb data.tar.xz
-          tar -xf data.tar.xz
-          cp data/data/com.termux/files/usr/bin/qemu-system-aarch64 .
-          chmod +x qemu-system-aarch64
-
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y git build-essential libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev libgcrypt20-dev
+          
+          git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
+          cd qemu
+          mkdir build && cd build
+          
+          
+          ../configure \
+            --target-list=aarch64-softmmu \
+            --enable-kvm \
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1" \
+            --static
+          
+          make -j$(nproc)
+      - uses: actions/upload-artifact@v4
         with:
-          name: qemu-system-aarch64
-          path: qemu-system-aarch64
+          name: qemu-static-16k
+          path: qemu/build/qemu-system-aarch64
