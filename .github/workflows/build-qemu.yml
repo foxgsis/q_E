@@ -30,9 +30,9 @@ jobs:
         run: |
           cd qemu
           mkdir build && cd build
-          # Ключевые переменные для pkg-config
-          export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
+          # Ключевая строка: добавляем путь к ARM64 .pc файлам прямо в PKG_CONFIG_PATH
+          PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig \
+          PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig \
           ../configure \
             --target-list=aarch64-softmmu \
             --cross-prefix=aarch64-linux-gnu- \
