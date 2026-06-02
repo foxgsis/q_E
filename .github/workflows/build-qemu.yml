@@ -1,4 +1,4 @@
-name: Build QEMU 11.0.0 with TLS alignment
+name: Build QEMU 11.0.0 for Android (official source)
 
 on: workflow_dispatch
 
@@ -19,12 +19,15 @@ jobs:
           pip3 install --user meson
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Checkout QEMU
+      - name: Clone QEMU from source that supports Android Bionic
         run: |
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
+          # Apply Android Bionic TLS alignment patch
+          wget -O /tmp/android-tls.patch https://raw.githubusercontent.com/termux/termux-packages/master/packages/qemu/system-aarch64.patch
+          patch -p1 < /tmp/android-tls.patch || true
 
-      - name: Configure QEMU
+      - name: Configure QEMU for Android Bionic
         run: |
           cd qemu
           mkdir build && cd build
@@ -34,7 +37,7 @@ jobs:
             --target-list=aarch64-softmmu \
             --cross-prefix=aarch64-linux-gnu- \
             --disable-xen \
-            --extra-ldflags="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64" \
+            --extra-ldflags="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64 -Wl,--no-undefined-version" \
             --disable-werror
 
       - name: Build QEMU
@@ -45,5 +48,5 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: qemu-aligned
+          name: qemu-android
           path: qemu/build/qemu-system-aarch64
