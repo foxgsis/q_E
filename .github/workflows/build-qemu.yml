@@ -1,4 +1,4 @@
-name: Build QEMU 11.0.0 for ARM64
+name: Build QEMU 11.0.0 for ARM64 (dynamic)
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-sdl --enable-opengl --enable-virglrenderer --enable-vnc \
-            --static --disable-werror
+            --disable-werror
           make -j$(nproc)
 
       - name: Upload binary
