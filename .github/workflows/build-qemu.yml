@@ -1,4 +1,4 @@
-name: Build QEMU 11.0.0
+name: Build QEMU 11.0.0 with TLS alignment
 
 on: workflow_dispatch
 
@@ -12,9 +12,10 @@ jobs:
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
           mkdir build && cd build
-          ../configure --target-list=aarch64-softmmu
+          ../configure --target-list=aarch64-softmmu \
+            --extra-ldflags="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64"
           make -j$(nproc)
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu
+          name: qemu-aligned
           path: qemu/build/qemu-system-aarch64
