@@ -21,26 +21,43 @@ jobs:
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
 
+      - name: Create cross-compilation file
+        run: |
+          cat > /tmp/aarch64-cross.txt << EOF
+          [binaries]
+          c = 'aarch64-linux-gnu-gcc'
+          cpp = 'aarch64-linux-gnu-g++'
+          ar = 'aarch64-linux-gnu-ar'
+          strip = 'aarch64-linux-gnu-strip'
+          pkgconfig = 'pkg-config'
+
+          [host_machine]
+          system = 'linux'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+          EOF
+
       - name: Configure QEMU with cross-compilation and TLS fix
         run: |
           cd qemu
           mkdir build && cd build
-          # Кросс-компиляция для ARM64 с флагами выравнивания TLS
-          CROSS_PREFIX=aarch64-linux-gnu- \
           LDFLAGS="-Wl,-z,max-page-size=64 -Wl,-z,common-page-size=64" \
-          ../configure \
-            --target-list=aarch64-softmmu \
-            --cross-prefix=aarch64-linux-gnu- \
-            --enable-sdl \
-            --enable-opengl \
-            --enable-virglrenderer \
-            --enable-vnc \
-            --disable-werror
+          meson setup .. \
+            --cross-file /tmp/aarch64-cross.txt \
+            --prefix=/usr \
+            --libdir=lib \
+            -Dtarget_list=aarch64-softmmu \
+            -Dsdl=enabled \
+            -Dopengl=enabled \
+            -Dvirglrenderer=enabled \
+            -Dvnc=enabled \
+            -Dwerror=false
 
       - name: Build QEMU
         run: |
           cd qemu/build
-          make -j$(nproc)
+          ninja -j$(nproc)
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
