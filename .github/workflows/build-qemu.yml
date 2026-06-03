@@ -1,13 +1,12 @@
 name: Build QEMU Portable with Cuttlefish
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   build-qemu:
     runs-on: ubuntu-latest
     container:
-      image: debian:10-slim # Образ, который официально протестирован
+      image: debian:12-slim
     steps:
       - name: Install Dependencies
         run: |
@@ -18,7 +17,6 @@ jobs:
         run: |
           git clone https://android.googlesource.com/device/google/cuttlefish_vmm
           cd cuttlefish_vmm
-          # Инициализация всех необходимых подмодулей
           git submodule update --init --recursive --depth 1
 
       - name: Run the Official QEMU Build Script
@@ -31,5 +29,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qemu-portable
-          # Путь, куда скрипт складывает собранный бинарник
           path: /tmp/qemu-build/qemu-portable.tar.gz
