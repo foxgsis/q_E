@@ -26,14 +26,20 @@ jobs:
 
           make -j$(nproc)
 
-          # Копируем бинарник и все нужные .so
+          # Создаём папку для бандла
           mkdir -p qemu-bundle/lib
+          
+          # Копируем бинарник
           cp qemu-system-aarch64 qemu-bundle/
           
           # Копируем зависимости
-          ldd qemu-system-aarch64 | grep "=> /" | awk '{print $3}' | xargs -I {} cp {} qemu-bundle/lib/
+          ldd qemu-system-aarch64 | grep "=> /" | awk '{print $3}' | xargs -I {} cp {} qemu-bundle/lib/ || true
+
+          # Показываем, что собрали
+          ls -la qemu-bundle/
+          ls -la qemu-bundle/lib/
 
       - uses: actions/upload-artifact@v4
         with:
           name: qemu-with-libs
-          path: qemu/qemu/build/qemu-bundle/
+          path: qemu/build/qemu-bundle/
