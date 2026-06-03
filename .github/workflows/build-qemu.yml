@@ -1,75 +1,38 @@
-name: Build QEMU 11.0.0 for Android 16 (Full Static)
+name: Build QEMU 11 Static for Android 16
 
 on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-22.04-arm
     steps:
       - run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git \
-            build-essential \
-            gcc \
-            g++ \
-            python3 \
-            python3-pip \
-            ninja-build \
-            pkg-config \
-            libglib2.0-dev \
-            libglib2.0-dev-bin \
-            libpixman-1-dev \
-            libslirp-dev \
-            libusb-1.0-0-dev \
-            libgcrypt20-dev \
-            libmount-dev \
-            libudev-dev \
-            libfdt-dev \
-            libcap-ng-dev \
-            libattr1-dev \
-            libseccomp-dev \
-            zlib1g-dev \
-            liblzo2-dev \
-            libsnappy-dev \
-            libbz2-dev \
-            liblzma-dev \
-            libzstd-dev \
-            libcurl4-gnutls-dev
-
-          # Форсируем установку питоновских зависимостей
-          pip3 install --user --upgrade pip setuptools wheel
-          pip3 install --user qemu.qmp==0.0.5
+            git build-essential python3 ninja-build pkg-config \
+            libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
+            libgcrypt20-dev libfdt-dev libcap-ng-dev \
+            zlib1g-dev musl-tools
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
           mkdir build && cd build
-          
-          # Отключаем проверку компилятора и форсируем сборку
-          export CC=gcc
-          export CXX=g++
-          
+
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-kvm \
-            --disable-guest-agent \
             --disable-werror \
-            --disable-pie \
+            --disable-guest-agent \
+            --cc=musl-gcc \
             --static \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
-            --extra-ldflags="-static -lmount -ludev -Wl,--allow-multiple-definition -Wl,--unresolved-symbols=ignore-all" \
-            --disable-docs \
-            --disable-tools \
-            --disable-python \
-            --disable-qom-cast-debug
-            
-          make -j$(nproc) 2>&1 | tee build.log
-          
-          strip --strip-all qemu-system-aarch64
-          chmod 755 qemu-system-aarch64
-          
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -Os" \
+            --extra-ldflags="-static"
+
+          make -j$(nproc)
+
+          strip qemu-system-aarch64
+
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu-11.0.0-aarch64-static
+          name: qemu-static-16k
           path: qemu/build/qemu-system-aarch64
-          retention-days: 90
