@@ -1,4 +1,4 @@
-name: Build QEMU 11 Static for Android 16
+name: Build QEMU 11 Dynamic (Working)
 
 on: workflow_dispatch
 
@@ -11,8 +11,7 @@ jobs:
           sudo apt-get install -y \
             git build-essential python3 ninja-build pkg-config \
             libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
-            libgcrypt20-dev libfdt-dev libcap-ng-dev \
-            zlib1g-dev musl-tools
+            libgcrypt20-dev libfdt-dev libcap-ng-dev libseccomp-dev zlib1g-dev
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
@@ -23,16 +22,11 @@ jobs:
             --enable-kvm \
             --disable-werror \
             --disable-guest-agent \
-            --cc=musl-gcc \
-            --static \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -Os" \
-            --extra-ldflags="-static"
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1"
 
           make -j$(nproc)
 
-          strip qemu-system-aarch64
-
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu-static-16k
+          name: qemu-system-aarch64
           path: qemu/build/qemu-system-aarch64
