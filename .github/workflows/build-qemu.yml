@@ -4,7 +4,6 @@ on: workflow_dispatch
 
 jobs:
   build:
-    # Используем официальный бесплатный ARM-раннер от GitHub
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Install dependencies
@@ -12,7 +11,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git build-essential python3 ninja-build pkg-config \
             libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
-            libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev
+            libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev \
+            libudev-dev
 
       - name: Clone QEMU source code
         run: git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
@@ -28,7 +28,8 @@ jobs:
             --disable-guest-agent \
             --static \
             --disable-docs \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2"
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
+            --extra-ldflags="-static -ludev"
 
       - name: Build QEMU
         run: |
