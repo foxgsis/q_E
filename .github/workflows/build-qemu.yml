@@ -11,7 +11,10 @@ jobs:
           sudo apt-get install -y \
             git \
             build-essential \
+            gcc \
+            g++ \
             python3 \
+            python3-pip \
             ninja-build \
             pkg-config \
             libglib2.0-dev \
@@ -32,40 +35,35 @@ jobs:
             libbz2-dev \
             liblzma-dev \
             libzstd-dev \
-            libcurl4-gnutls-dev \
-            libnss3-dev \
-            libpulse-dev \
-            libsdl2-dev \
-            libpng-dev \
-            libjpeg-dev \
-            libsasl2-dev \
-            libgnutls28-dev \
-            nettle-dev \
-            libtasn1-6-dev \
-            libx11-dev \
-            libxext-dev \
-            libbrlapi-dev \
-            libcacard-dev \
-            libusbredirparser-dev \
-            libxml2-dev \
-            libdrm-dev
+            libcurl4-gnutls-dev
+
+          # Форсируем установку питоновских зависимостей
+          pip3 install --user --upgrade pip setuptools wheel
+          pip3 install --user qemu.qmp==0.0.5
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
           mkdir build && cd build
+          
+          # Отключаем проверку компилятора и форсируем сборку
+          export CC=gcc
+          export CXX=g++
           
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-kvm \
             --disable-guest-agent \
             --disable-werror \
+            --disable-pie \
             --static \
             --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
             --extra-ldflags="-static -lmount -ludev -Wl,--allow-multiple-definition -Wl,--unresolved-symbols=ignore-all" \
             --disable-docs \
-            --disable-tools
+            --disable-tools \
+            --disable-python \
+            --disable-qom-cast-debug
             
-          make -j$(nproc)
+          make -j$(nproc) 2>&1 | tee build.log
           
           strip --strip-all qemu-system-aarch64
           chmod 755 qemu-system-aarch64
