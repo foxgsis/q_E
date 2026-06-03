@@ -1,28 +1,19 @@
-name: Build QEMU Static for Android
+name: Cross-compile QEMU Static for Android
 
 on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04
     steps:
       - run: |
           sudo apt-get update
           sudo apt-get install -y \
             git build-essential python3 ninja-build pkg-config \
-            libglib2.0-dev libglib2.0-static \
-            libpixman-1-dev libpixman-1-static \
-            libslirp-dev libslirp-static \
-            libusb-1.0-0-dev libusb-1.0-0-static \
-            libgcrypt20-dev libgcrypt20-static \
-            libfdt-dev libfdt-static \
-            libcap-ng-dev libcap-ng-static \
-            libseccomp-dev libseccomp-static \
-            libudev-dev libudev-static \
-            zlib1g-dev zlib1g-static \
-            libzstd-dev libzstd-static \
-            libpng-dev libpng-static \
-            libjpeg-turbo8-dev libjpeg-turbo-static
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
+            libgcrypt20-dev libfdt-dev libcap-ng-dev libseccomp-dev \
+            libudev-dev zlib1g-dev libzstd-dev
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
@@ -34,14 +25,15 @@ jobs:
             --disable-werror \
             --disable-guest-agent \
             --static \
+            --cross-prefix=aarch64-linux-gnu- \
             --disable-docs \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
-            --extra-ldflags="-static -lmount -ludev"
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static" \
+            --extra-ldflags="-static"
 
           make -j$(nproc)
-          strip qemu-system-aarch64
+          aarch64-linux-gnu-strip qemu-system-aarch64
 
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu-static-final
+          name: qemu-static-aarch64
           path: qemu/build/qemu-system-aarch64
