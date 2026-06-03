@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - run: |
-          # Установка ВСЕХ возможных зависимостей для статической сборки
           sudo apt-get update
           sudo apt-get install -y \
             git \
@@ -37,11 +36,6 @@ jobs:
             libnss3-dev \
             libpulse-dev \
             libsdl2-dev \
-            libspice-protocol-dev \
-            libspice-server-dev \
-            libvirglrenderer-dev \
-            libgtk-3-dev \
-            libvte-2.91-dev \
             libpng-dev \
             libjpeg-dev \
             libsasl2-dev \
@@ -50,50 +44,31 @@ jobs:
             libtasn1-6-dev \
             libx11-dev \
             libxext-dev \
-            libxcb1-dev \
-            libxdmcp-dev \
-            libxau-dev \
             libbrlapi-dev \
             libcacard-dev \
             libusbredirparser-dev \
-            libvduse-dev \
-            libvdutool-dev \
             libxml2-dev \
-            libxslt1-dev \
-            libdrm-dev \
-            libepoxy-dev \
-            libgbm-dev
+            libdrm-dev
 
-          # Клонируем QEMU
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
           mkdir build && cd build
           
-          # Конфигурация с максимальной статикой
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-kvm \
             --disable-guest-agent \
             --disable-werror \
             --static \
-            --enable-modules \
             --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
-            --extra-ldflags="-static -Wl,--allow-multiple-definition" \
+            --extra-ldflags="-static -lmount -ludev -Wl,--allow-multiple-definition -Wl,--unresolved-symbols=ignore-all" \
             --disable-docs \
-            --disable-gtk-doc \
-            --disable-tools \
-            --disable-blobs
+            --disable-tools
             
-          # Сборка
           make -j$(nproc)
           
-          # Уменьшаем размер и делаем максимально совместимым
           strip --strip-all qemu-system-aarch64
           chmod 755 qemu-system-aarch64
-          
-          # Проверяем, что собралось
-          file qemu-system-aarch64
-          ls -lh qemu-system-aarch64
           
       - uses: actions/upload-artifact@v4
         with:
