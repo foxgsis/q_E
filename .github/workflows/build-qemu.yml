@@ -1,45 +1,43 @@
-name: Build QEMU 11 Dynamic with libs
+name: Build Static QEMU for Android
 
 on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-latest
     steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git build-essential python3 ninja-build pkg-config \
-            libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
-            libgcrypt20-dev libfdt-dev libcap-ng-dev libseccomp-dev zlib1g-dev
+      - name: Checkout QEMU Source
+        run: git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
 
-          git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
-          cd qemu
-          mkdir build && cd build
-
-          ../configure \
-            --target-list=aarch64-softmmu \
-            --enable-kvm \
-            --disable-werror \
-            --disable-guest-agent \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1"
-
-          make -j$(nproc)
-
-          # Создаём папку для бандла
-          mkdir -p qemu-bundle/lib
-          
-          # Копируем бинарник
-          cp qemu-system-aarch64 qemu-bundle/
-          
-          # Копируем зависимости
-          ldd qemu-system-aarch64 | grep "=> /" | awk '{print $3}' | xargs -I {} cp {} qemu-bundle/lib/ || true
-
-          # Показываем, что собрали
-          ls -la qemu-bundle/
-          ls -la qemu-bundle/lib/
-
+      - name: Build Static QEMU in clean aarch64 environment
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: aarch64
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          # Устанавливаем зависимости и собираем статику прямо внутри эмуляции ARM
+          install: |
+            apt-get update
+            apt-get install -y git build-essential python3 ninja-build pkg-config \
+              libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
+              libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev
+          run: |
+            cd qemu
+            mkdir build && cd build
+            ../configure \
+              --target-list=aarch64-softmmu \
+              --enable-kvm \
+              --disable-werror \
+              --disable-guest-agent \
+              --static \
+              --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
+              --extra-ldflags="-static"
+            make -j$(nproc)
+            strip qemu-system-aarch64
+            # Сохраняем бинарник в место, которое будет доступно после завершения эмуляции
+            cp qemu-system-aarch64 ../../../
+            
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu-with-libs
-          path: qemu/build/qemu-bundle/
+          name: qemu-static-android
+          path: qemu-system-aarch64
