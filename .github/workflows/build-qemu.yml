@@ -9,39 +9,28 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git build-essential python3 python3-pip ninja-build \
-            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-          pip3 install meson
+            git build-essential python3 ninja-build \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            libglib2.0-dev libpixman-1-dev libslirp-dev \
+            libusb-1.0-0-dev libgcrypt20-dev libfdt-dev \
+            libcap-ng-dev zlib1g-dev
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
+          mkdir build && cd build
 
-          mkdir -p build && cd build
+          export CC=aarch64-linux-gnu-gcc
+          export CXX=aarch64-linux-gnu-g++
+          export AR=aarch64-linux-gnu-ar
+          export LD=aarch64-linux-gnu-ld
+          export PKG_CONFIG=aarch64-linux-gnu-pkg-config
 
-          cat > meson.cross << 'EOF'
-          [binaries]
-          c = 'aarch64-linux-gnu-gcc'
-          cpp = 'aarch64-linux-gnu-g++'
-          ar = 'aarch64-linux-gnu-ar'
-          strip = 'aarch64-linux-gnu-strip'
-
-          [host_machine]
-          system = 'linux'
-          cpu_family = 'aarch64'
-          cpu = 'aarch64'
-          endian = 'little'
-          EOF
-
-          CC=aarch64-linux-gnu-gcc \
-          CXX=aarch64-linux-gnu-g++ \
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-kvm \
             --disable-werror \
             --disable-guest-agent \
             --static \
-            --cross-file=meson.cross \
             --disable-docs \
             --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static" \
             --extra-ldflags="-static"
