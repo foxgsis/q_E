@@ -12,7 +12,7 @@ jobs:
           sudo apt-get install -y git build-essential python3 ninja-build pkg-config \
             libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
             libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev \
-            libudev-dev
+            libudev-dev clang
 
       - name: Clone QEMU source code
         run: git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
@@ -21,6 +21,8 @@ jobs:
         run: |
           cd qemu
           mkdir build && cd build
+          export CC=clang
+          export CXX=clang++
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-kvm \
@@ -28,6 +30,8 @@ jobs:
             --disable-guest-agent \
             --static \
             --disable-docs \
+            --cc=clang \
+            --cxx=clang++ \
             --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
             --extra-ldflags="-static -ludev"
 
