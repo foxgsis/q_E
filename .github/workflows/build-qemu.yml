@@ -11,13 +11,40 @@ jobs:
           sudo apt-get install -y \
             git build-essential python3 ninja-build pkg-config \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            pkg-config-aarch64-linux-gnu \
             libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
             libgcrypt20-dev libfdt-dev libcap-ng-dev libseccomp-dev \
             libudev-dev zlib1g-dev libzstd-dev
 
+          # Устанавливаем зависимости для ARM
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y \
+            libglib2.0-dev:arm64 libpixman-1-dev:arm64 \
+            libslirp-dev:arm64 libusb-1.0-0-dev:arm64 \
+            libgcrypt20-dev:arm64 libfdt-dev:arm64 \
+            libcap-ng-dev:arm64 libseccomp-dev:arm64 \
+            libudev-dev:arm64 zlib1g-dev:arm64 libzstd-dev:arm64
+
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
           mkdir build && cd build
+
+          # Создаём кросс-файл для meson
+          cat > cross-file.txt << EOF
+          [binaries]
+          c = 'aarch64-linux-gnu-gcc'
+          cpp = 'aarch64-linux-gnu-g++'
+          ar = 'aarch64-linux-gnu-ar'
+          strip = 'aarch64-linux-gnu-strip'
+          pkgconfig = 'aarch64-linux-gnu-pkg-config'
+
+          [host_machine]
+          system = 'linux'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+          EOF
 
           ../configure \
             --target-list=aarch64-softmmu \
@@ -25,13 +52,11 @@ jobs:
             --disable-werror \
             --disable-guest-agent \
             --static \
-            --cross-prefix=aarch64-linux-gnu- \
+            --cross-file=cross-file.txt \
             --disable-docs \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static" \
-            --extra-ldflags="-static"
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static"
 
           make -j$(nproc)
-          aarch64-linux-gnu-strip qemu-system-aarch64
 
       - uses: actions/upload-artifact@v4
         with:
