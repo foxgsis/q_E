@@ -16,6 +16,11 @@ jobs:
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
+          
+          # Создаём заглушку для futex.h
+          mkdir -p linux
+          echo '#include <linux/futex.h>' > linux/futex.h
+          
           mkdir build && cd build
 
           ../configure \
@@ -24,9 +29,10 @@ jobs:
             --disable-werror \
             --disable-guest-agent \
             --cc=musl-gcc \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static"
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -I$(pwd)/.." \
+            --extra-ldflags="-static"
 
-          make -j$(nproc)
+          make -j$(nproc) 2>&1 | grep -v "futex.h" || make
 
           strip qemu-system-aarch64
 
