@@ -1,44 +1,43 @@
-name: Build QEMU 11 Dynamic with libs
+name: Build QEMU 11.0.0 for Android (ARM64 Native)
 
 on: workflow_dispatch
 
 jobs:
   build:
+    # Используем официальный бесплатный ARM-раннер от GitHub
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: |
+      - name: Install dependencies
+        run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            git build-essential python3 ninja-build pkg-config \
+          sudo apt-get install -y git build-essential python3 ninja-build pkg-config \
             libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
-            libgcrypt20-dev libfdt-dev libcap-ng-dev libseccomp-dev \
-            libudev-dev zlib1g-dev libzstd-dev
+            libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev
 
-          git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
+      - name: Clone QEMU source code
+        run: git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
+
+      - name: Configure QEMU for static build with 16K pages
+        run: |
           cd qemu
           mkdir build && cd build
-
           ../configure \
             --target-list=aarch64-softmmu \
             --enable-kvm \
             --disable-werror \
             --disable-guest-agent \
+            --static \
             --disable-docs \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -O2" \
-            --prefix=/usr
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2"
 
+      - name: Build QEMU
+        run: |
+          cd qemu/build
           make -j$(nproc)
           strip qemu-system-aarch64
 
-          # Собираем всё в кучу
-          mkdir -p bundle/lib
-          cp qemu-system-aarch64 bundle/
-          ldd qemu-system-aarch64 | grep "=> /" | awk '{print $3}' | xargs -I {} cp {} bundle/lib/ || true
-
-          cd bundle
-          tar -czf ../qemu-bundle.tar.gz .
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload final binary
+        uses: actions/upload-artifact@v4
         with:
-          name: qemu-bundle
-          path: qemu/build/qemu-bundle.tar.gz
+          name: qemu-static-aarch64
+          path: qemu/build/qemu-system-aarch64
