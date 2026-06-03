@@ -1,4 +1,4 @@
-cname: Build QEMU 11.0.0 for Android (ARM64 Native)
+name: Build QEMU 11.0.0 for Android (ARM64 Native)
 
 on: workflow_dispatch
 
