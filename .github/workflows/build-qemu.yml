@@ -1,43 +1,35 @@
-name: Build Static QEMU for Android
+name: Build QEMU Portable with Cuttlefish
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  build-qemu:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:10-slim # Образ, который официально протестирован
     steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git build-essential python3 ninja-build \
-            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            libglib2.0-dev libpixman-1-dev libslirp-dev \
-            libusb-1.0-0-dev libgcrypt20-dev libfdt-dev \
-            libcap-ng-dev zlib1g-dev
+      - name: Install Dependencies
+        run: |
+          apt-get update
+          apt-get install -y git autoconf libtool texinfo python3
 
-          git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
-          cd qemu
-          mkdir build && cd build
+      - name: Clone Cuttlefish QEMU Build Repository
+        run: |
+          git clone https://android.googlesource.com/device/google/cuttlefish_vmm
+          cd cuttlefish_vmm
+          # Инициализация всех необходимых подмодулей
+          git submodule update --init --recursive --depth 1
 
-          export CC=aarch64-linux-gnu-gcc
-          export CXX=aarch64-linux-gnu-g++
-          export AR=aarch64-linux-gnu-ar
-          export LD=aarch64-linux-gnu-ld
-          export PKG_CONFIG=aarch64-linux-gnu-pkg-config
+      - name: Run the Official QEMU Build Script
+        run: |
+          mkdir -p /tmp/qemu-build
+          cd cuttlefish_vmm
+          qemu/scripts/rebuild.sh --build-dir /tmp/qemu-build
 
-          ../configure \
-            --target-list=aarch64-softmmu \
-            --enable-kvm \
-            --disable-werror \
-            --disable-guest-agent \
-            --static \
-            --disable-docs \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static" \
-            --extra-ldflags="-static"
-
-          make -j$(nproc)
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload Portable QEMU Binary
+        uses: actions/upload-artifact@v4
         with:
-          name: qemu-static
-          path: qemu/build/qemu-system-aarch64
+          name: qemu-portable
+          # Путь, куда скрипт складывает собранный бинарник
+          path: /tmp/qemu-build/qemu-portable.tar.gz
