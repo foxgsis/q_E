@@ -1,55 +1,36 @@
-name: Build Static QEMU for Android
+name: Cross-compile QEMU Static for Android
 
 on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
-      - name: Checkout QEMU Source
-        run: git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git build-essential python3 ninja-build pkg-config \
+            libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
+            libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev
 
-      - name: Build Static QEMU in clean aarch64 environment
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: aarch64
-          distro: ubuntu22.04
-          githubToken: ${{ github.token }}
-          install: |
-            apt-get update
-            apt-get install -y \
-              git build-essential python3 python3-pip python3-venv \
-              ninja-build pkg-config \
-              libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
-              libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev
-            # Устанавливаем всё необходимое для Python
-            pip3 install meson tomli tomli-w pycotap
-          run: |
-            cd qemu
-            mkdir build && cd build
-            
-            # Полностью отключаем создание venv
-            export NINJA=/usr/bin/ninja
-            export PYTHON=/usr/bin/python3
-            
-            ../configure \
-              --target-list=aarch64-softmmu \
-              --enable-kvm \
-              --disable-werror \
-              --disable-guest-agent \
-              --static \
-              --python=/usr/bin/python3 \
-              --disable-docs \
-              --disable-pie \
-              --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
-              --extra-ldflags="-static" \
-              --disable-pythonvenv
-            
-            make -j$(nproc) || true
-            # Если make упал, но бинарник уже собрался
-            find . -name "qemu-system-aarch64" -exec cp {} ../../ \;
-            
+          git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
+          cd qemu
+          mkdir build && cd build
+
+          ../configure \
+            --target-list=aarch64-softmmu \
+            --enable-kvm \
+            --disable-werror \
+            --disable-guest-agent \
+            --static \
+            --disable-docs \
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
+            --extra-ldflags="-static"
+
+          make -j$(nproc)
+          strip qemu-system-aarch64
+
       - uses: actions/upload-artifact@v4
         with:
           name: qemu-static-android
-          path: qemu-system-aarch64
+          path: qemu/build/qemu-system-aarch64
