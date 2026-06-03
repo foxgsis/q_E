@@ -15,27 +15,37 @@ jobs:
           arch: aarch64
           distro: ubuntu22.04
           githubToken: ${{ github.token }}
-          # Устанавливаем зависимости и собираем статику прямо внутри эмуляции ARM
+          # Устанавливаем всё, что нужно для сборки
           install: |
             apt-get update
-            apt-get install -y git build-essential python3 ninja-build pkg-config \
+            apt-get install -y \
+              git build-essential python3 python3-pip python3-venv \
+              ninja-build pkg-config \
               libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
               libgcrypt20-dev libfdt-dev libcap-ng-dev zlib1g-dev
+            # Устанавливаем meson через pip (чтобы не было проблем с ensurepip)
+            pip3 install meson
           run: |
             cd qemu
             mkdir build && cd build
+            
+            # Отключаем создание venv
+            export PYTHON=/usr/bin/python3
+            
             ../configure \
               --target-list=aarch64-softmmu \
               --enable-kvm \
               --disable-werror \
               --disable-guest-agent \
               --static \
+              --python=/usr/bin/python3 \
+              --disable-docs \
               --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -O2" \
               --extra-ldflags="-static"
+            
             make -j$(nproc)
             strip qemu-system-aarch64
-            # Сохраняем бинарник в место, которое будет доступно после завершения эмуляции
-            cp qemu-system-aarch64 ../../../
+            cp qemu-system-aarch64 ../../
             
       - uses: actions/upload-artifact@v4
         with:
