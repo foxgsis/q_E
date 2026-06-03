@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - run: |
+          # Настраиваем репозитории для ARM64
+          sudo sed -i 's/archive.ubuntu.com/ports.ubuntu.com/g' /etc/apt/sources.list
+          sudo sed -i 's/security.ubuntu.com/ports.ubuntu.com/g' /etc/apt/sources.list
+          
           sudo apt-get update
           sudo apt-get install -y \
             git build-essential python3 ninja-build pkg-config \
@@ -18,7 +22,6 @@ jobs:
           
           # Ставим зависимости для ARM64
           sudo apt-get install -y \
-            pkg-config \
             libglib2.0-dev:arm64 libpixman-1-dev:arm64 \
             libslirp-dev:arm64 libusb-1.0-0-dev:arm64 \
             libgcrypt20-dev:arm64 libfdt-dev:arm64 \
@@ -29,7 +32,6 @@ jobs:
           cd qemu
           mkdir build && cd build
 
-          # Создаём кросс-файл
           cat > cross-file.txt << 'EOF'
           [binaries]
           c = 'aarch64-linux-gnu-gcc'
