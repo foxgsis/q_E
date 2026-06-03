@@ -1,4 +1,4 @@
-name: Build QEMU 11 for Termux (musl)
+name: Build QEMU 11 Dynamic with libs
 
 on: workflow_dispatch
 
@@ -11,16 +11,10 @@ jobs:
           sudo apt-get install -y \
             git build-essential python3 ninja-build pkg-config \
             libglib2.0-dev libpixman-1-dev libslirp-dev libusb-1.0-0-dev \
-            libgcrypt20-dev libfdt-dev libcap-ng-dev \
-            zlib1g-dev musl-tools
+            libgcrypt20-dev libfdt-dev libcap-ng-dev libseccomp-dev zlib1g-dev
 
           git clone --depth 1 --branch v11.0.0 https://git.qemu.org/git/qemu.git
           cd qemu
-          
-          # Создаём заглушку для futex.h
-          mkdir -p linux
-          echo '#include <linux/futex.h>' > linux/futex.h
-          
           mkdir build && cd build
 
           ../configure \
@@ -28,15 +22,18 @@ jobs:
             --enable-kvm \
             --disable-werror \
             --disable-guest-agent \
-            --cc=musl-gcc \
-            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1 -static -I$(pwd)/.." \
-            --extra-ldflags="-static"
+            --extra-cflags="-DCONFIG_ARM_VIRT_16K_PAGE=1"
 
-          make -j$(nproc) 2>&1 | grep -v "futex.h" || make
+          make -j$(nproc)
 
-          strip qemu-system-aarch64
+          # Копируем бинарник и все нужные .so
+          mkdir -p qemu-bundle/lib
+          cp qemu-system-aarch64 qemu-bundle/
+          
+          # Копируем зависимости
+          ldd qemu-system-aarch64 | grep "=> /" | awk '{print $3}' | xargs -I {} cp {} qemu-bundle/lib/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: qemu-musl-static
-          path: qemu/build/qemu-system-aarch64
+          name: qemu-with-libs
+          path: qemu/qemu/build/qemu-bundle/
